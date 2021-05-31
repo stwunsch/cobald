@@ -4,6 +4,8 @@ from cobald.interfaces import Pool, Controller
 
 from cobald.daemon import service
 
+from math import ceil
+
 
 @service(flavour=trio)
 class LinearController(Controller):
@@ -38,3 +40,35 @@ class LinearController(Controller):
             self.target.demand -= interval * self.rate
         elif self.target.allocation > self.high_allocation:
             self.target.demand += interval * self.rate
+
+    def regulate_stepwise(self, interval):
+        low = self.low_utilisation
+        high = self.high_allocation
+        print('Demand: {}, Supply: {}, Allocation: {}, Utilisation: {}'.format(
+            self.target.demand,
+            self.target.supply,
+            self.target.allocation,
+            self.target.utilisation))
+        '''
+        if self.target.demand == self.target.supply:
+            if self.target.allocation < low:
+                new_demand = ceil(self.target.supply * self.target.utilisation)
+                print('Demand is now {}, adjust demand to {}'.format(self.target.demand, new_demand))
+                self.target.demand = new_demand
+            elif self.target.allocation > high:
+                self.target.demand += self.rate
+            else:
+                pass
+        '''
+        if self.target.allocation < low:
+            target_utilisation = 0.8 # 80% utilisation after adjusting the demand
+            print('Adjust demand based on utilisation {}'.format(self.target.utilisation))
+            new_demand = int(ceil(self.target.supply * self.target.utilisation / target_utilisation))
+            print('Demand is now {}, adjust demand to {}'.format(self.target.demand, new_demand))
+            self.target.demand = new_demand
+        elif (self.target.demand == self.target.supply) and (self.target.allocation > high):
+            print('Increase demand by {}'.format(self.rate))
+            self.target.demand += self.rate
+        else:
+            print('Do nothing')
+            pass
